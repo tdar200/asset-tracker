@@ -3,6 +3,10 @@ name = "tracker-server"
 version.workspace = true
 edition.workspace = true
 
+[lib]
+name = "tracker_server"
+path = "src/lib.rs"
+
 [[bin]]
 name = "tracker-server"
 path = "src/main.rs"
