@@ -31,8 +31,17 @@ crates/
 
 - **core** — `serde` structs for the data model; pure functions for gain/loss,
   latest-snapshot selection, currency grouping, and snapshot upsert-by-date. No
-  I/O, no framework deps, so it is safe for `wasm32`. This crate is the single
-  source of truth for both server and client.
+  I/O, no framework deps, **and crucially no randomness or system clock**, so it
+  is safe and trivial to compile for `wasm32`. This crate is the single source of
+  truth for both server and client.
+
+  > **Wasm-safety constraint (validated 2026-05-29):** `uuid`/`getrandom` on
+  > `wasm32-unknown-unknown` is a known friction point (the getrandom 0.2↔0.3
+  > break and `js`/`wasm_js` feature dance). We sidestep it entirely: **item IDs
+  > are minted server-side** (the `server` crate owns `uuid`, native target only)
+  > and snapshot **dates are server-assigned or user-supplied via the form** —
+  > never read from a wasm system clock. `core` and `web` therefore never depend
+  > on `uuid`/`getrandom`, keeping the wasm build clean.
 - **server** — `axum` + `tokio`. Owns `data.json` on disk (the file Claude reads
   and writes during research). Serves the JSON API and the static WASM bundle
   produced by trunk. Atomic writes (temp file + rename) with a `.bak` copy.
@@ -184,7 +193,27 @@ Focused unit tests in `core` via `cargo test`:
 Server store tests: atomic write round-trips and CRUD preserve valuation history.
 No frontend test harness.
 
-## 9. Decisions / non-goals
+## 9. Dependency versions & validation (researched 2026-05-29)
+
+Pinned/target versions, each verified against current sources via research-mcp:
+
+| Crate / tool | Version | Role | Notes |
+|---|---|---|---|
+| `leptos` | 0.8.x | Frontend SPA (CSR) | 0.8.19 latest; CSR-via-`trunk` is a supported path |
+| `trunk` | latest | WASM bundler/dev server | builds `web` → `dist/` |
+| `axum` | 0.8.x | Native HTTP server | current standard (Tokio team) |
+| `tower-http` | latest | `ServeDir` static serving | mounted as router fallback for the SPA |
+| `tokio` | 1.x | async runtime (server only) | not in `core`/`web` |
+| `plotters` + `plotters-canvas` | 0.3.x | charts on `<canvas>` | needs `web-sys` w/ `HtmlCanvasElement`; draw via a Leptos `NodeRef` to the canvas |
+| `web-sys` | 0.3.x | canvas/DOM access (web only) | enable `HtmlCanvasElement` feature |
+| `serde` + `serde_json` | latest | model (de)serialization | shared by all three crates |
+| `uuid` | 1.x | ID minting | **server crate only** — avoids the wasm getrandom issue |
+
+**Optional future enhancement (out of scope v1):** embed the `dist/` bundle into
+the server binary (e.g. `rust-embed`) for single-binary distribution. v1 serves
+`dist/` from disk via `ServeDir`, which is simpler and hackable.
+
+## 10. Decisions / non-goals
 
 - **All Rust**, no JS charting dependency (plotters on canvas).
 - **Stack:** Leptos (frontend), plotters (charts), axum (server), trunk (build).
