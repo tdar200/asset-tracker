@@ -46,12 +46,15 @@ impl Store {
         Ok(item)
     }
 
-    /// Returns true if an item with `id` existed and was updated. `id` is preserved.
+    /// Edit an item's metadata. `id` and the existing valuation history are
+    /// preserved regardless of what the payload carries — history is append-forward
+    /// and is only mutated through `add_valuation`. Returns true if `id` existed.
     pub fn update_item(&self, id: &str, mut updated: Item) -> Result<bool> {
         let mut data = self.load()?;
         match data.items.iter_mut().find(|i| i.id == id) {
             Some(slot) => {
                 updated.id = id.to_string();
+                updated.valuations = std::mem::take(&mut slot.valuations);
                 *slot = updated;
                 self.save(&data)?;
                 Ok(true)
@@ -140,6 +143,24 @@ mod tests {
         let mut ghost = created.clone();
         ghost.name = "Nope".into();
         assert!(!store.update_item("missing", ghost).unwrap());
+    }
+
+    #[test]
+    fn update_item_preserves_valuation_history_even_if_payload_drops_it() {
+        let (_d, store) = temp_store();
+        let created = store.add_item(sample_new()).unwrap();
+        store.add_valuation(&created.id, Valuation {
+            date: "2026-01-01".into(), low: 400.0, high: 500.0, best: 450.0,
+            confidence: Confidence::Medium, sources: vec![], comment: String::new(),
+        }).unwrap();
+        // Edit metadata with a payload that carries NO valuations.
+        let mut edited = created.clone(); // created has empty valuations
+        edited.name = "Renamed".into();
+        assert!(store.update_item(&created.id, edited).unwrap());
+        let item = store.load().unwrap().items.into_iter().next().unwrap();
+        assert_eq!(item.name, "Renamed");
+        assert_eq!(item.valuations.len(), 1); // history NOT wiped
+        assert_eq!(item.valuations[0].best, 450.0);
     }
 
     #[test]
