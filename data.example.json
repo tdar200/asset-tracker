@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "items": [
+    {
+      "id": "example-0001",
+      "name": "MacBook Pro 14\" M1",
+      "category": "Electronics",
+      "details": "A2442, 16GB/512GB, space grey",
+      "condition": "Good",
+      "currency": "GBP",
+      "purchasePrice": 1800.0,
+      "purchaseDate": "2022-11-01",
+      "notes": "",
+      "valuations": [
+        {
+          "date": "2026-05-29",
+          "low": 700.0,
+          "high": 950.0,
+          "best": 820.0,
+          "confidence": "medium",
+          "sources": [
+            { "name": "eBay sold listings", "url": "https://www.ebay.co.uk/sch/i.html", "value": 800.0, "note": "median of 12 sold" }
+          ],
+          "comment": "Resale softening with M3 release"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+[package]
+name = "tracker-core"
+version.workspace = true
+edition.workspace = true
+
+[lib]
+name = "tracker_core"
+path = "src/lib.rs"
+
+[dependencies]
+serde = { workspace = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }
