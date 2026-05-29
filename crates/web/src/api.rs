@@ -27,6 +27,9 @@ pub async fn delete_item(id: &str) -> Result<(), String> {
     if resp.ok() { Ok(()) } else { Err(error_body(resp).await) }
 }
 
+/// Client surface for manual valuation entry (server endpoint also used by the
+/// research workflow). Not wired to the UI yet — kept to mirror the server API.
+#[allow(dead_code)]
 pub async fn add_valuation(id: &str, valuation: &Valuation) -> Result<(), String> {
     let resp = Request::post(&format!("/api/items/{}/valuations", id))
         .json(valuation).map_err(|e| e.to_string())?
